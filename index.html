@@ -1,0 +1,528 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Zombie Typing Defense</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #08111f;
+      --panel: rgba(10, 24, 44, 0.88);
+      --accent: #5eead4;
+      --accent-2: #fb923c;
+      --danger: #f87171;
+      --text: #f8fafc;
+      --muted: #cbd5e1;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+      background: radial-gradient(circle at top, #15304f 0%, var(--bg) 55%, #030711 100%);
+      color: var(--text);
+      display: grid;
+      place-items: center;
+      padding: 20px;
+    }
+
+    .game {
+      width: min(980px, 100%);
+      background: var(--panel);
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 24px;
+      box-shadow: 0 20px 50px rgba(0,0,0,0.35);
+      overflow: hidden;
+    }
+
+    .hud {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 18px 24px;
+      background: rgba(255,255,255,0.06);
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+      font-weight: 600;
+      letter-spacing: 0.02em;
+    }
+
+    .hud strong { color: var(--accent); }
+
+    .battlefield {
+      position: relative;
+      height: 480px;
+      background: linear-gradient(180deg, #205e8b 0%, #0b2034 100%);
+      overflow: hidden;
+    }
+
+    .battlefield::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background-image: linear-gradient(rgba(255,255,255,0.07) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.05) 1px, transparent 1px);
+      background-size: 40px 40px;
+      opacity: 0.35;
+      pointer-events: none;
+    }
+
+    .ground {
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      height: 120px;
+      background: linear-gradient(180deg, #1e3a2d 0%, #0f241b 100%);
+      border-top: 4px solid #3e6c4d;
+    }
+
+    .defense-line {
+      position: absolute;
+      left: 130px;
+      bottom: 120px;
+      width: 4px;
+      height: 220px;
+      background: repeating-linear-gradient(180deg, #f8fafc 0 10px, #6ee7b7 10px 20px);
+      border-radius: 999px;
+      box-shadow: 0 0 12px rgba(110,231,183,0.45);
+    }
+
+    .hero {
+      position: absolute;
+      left: 40px;
+      bottom: 120px;
+      width: 80px;
+      height: 110px;
+      border-radius: 16px 16px 8px 8px;
+      background: linear-gradient(180deg, #f5d0fe 0%, #c084fc 100%);
+      box-shadow: inset 0 -8px 0 rgba(0,0,0,0.15), 0 10px 20px rgba(0,0,0,0.18);
+      display: grid;
+      place-items: center;
+      font-size: 1.2rem;
+      font-weight: 800;
+      color: #2d1b54;
+    }
+
+    .message {
+      position: absolute;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(2, 8, 23, 0.7);
+      padding: 10px 16px;
+      border-radius: 999px;
+      font-size: 0.95rem;
+      color: var(--muted);
+      border: 1px solid rgba(255,255,255,0.12);
+    }
+
+    .word-box {
+      position: absolute;
+      top: 128px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(255,255,255,0.16);
+      color: #fff;
+      padding: 28px 44px;
+      border-radius: 999px;
+      font-size: 1.45rem;
+      font-weight: 800;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      box-shadow: 0 12px 34px rgba(0,0,0,0.22);
+      min-width: 320px;
+      text-align: center;
+      margin-top: 36px;
+      transition: padding 0.35s ease, font-size 0.35s ease, min-width 0.35s ease, margin-top 0.35s ease;
+    }
+
+    .zombie {
+      position: absolute;
+      width: 104px;
+      height: 132px;
+      transform: translateY(-50%);
+      filter: drop-shadow(0 8px 16px rgba(0,0,0,0.2));
+      margin-left: 84px;
+    }
+
+    .zombie-body {
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(180deg, #4ade80 0%, #15803d 100%);
+      border-radius: 50% 50% 42% 42%;
+      position: relative;
+      border: 3px solid #052e16;
+    }
+
+    .zombie-body::before,
+    .zombie-body::after {
+      content: "";
+      position: absolute;
+      top: 18px;
+      width: 12px;
+      height: 12px;
+      background: #052e16;
+      border-radius: 50%;
+    }
+
+    .zombie-body::before { left: 16px; }
+    .zombie-body::after { right: 16px; }
+
+    .zombie-label {
+      position: absolute;
+      top: -34px;
+      left: 50%;
+      transform: translateX(-50%);
+      white-space: nowrap;
+      background: rgba(2,8,23,0.8);
+      color: #fff;
+      padding: 4px 8px;
+      border-radius: 999px;
+      font-size: 0.72rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+    }
+
+    .controls {
+      padding: 20px 24px 24px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      align-items: center;
+      justify-content: space-between;
+      background: rgba(255,255,255,0.04);
+    }
+
+    .controls-group {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .controls input {
+      flex: 1;
+      min-width: 280px;
+      padding: 16px 18px;
+      border-radius: 16px;
+      border: 1px solid rgba(255,255,255,0.16);
+      background: rgba(2,8,23,0.7);
+      color: var(--text);
+      font-size: 1.2rem;
+      font-weight: 600;
+      outline: none;
+      min-height: 56px;
+    }
+
+    .controls input:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(94,234,212,0.2);
+    }
+
+    button {
+      border: none;
+      border-radius: 999px;
+      padding: 12px 18px;
+      font-size: 0.98rem;
+      font-weight: 700;
+      cursor: pointer;
+      color: #052e16;
+      background: linear-gradient(135deg, var(--accent), #86efac);
+      transition: transform 0.15s ease;
+    }
+
+    button:hover { transform: translateY(-1px); }
+
+    .overlay {
+      position: absolute;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      background: rgba(2,8,23,0.8);
+      z-index: 5;
+      padding: 24px;
+      text-align: center;
+    }
+
+    .overlay.hidden { display: none; }
+
+    .overlay-card {
+      background: rgba(8, 15, 30, 0.95);
+      border: 1px solid rgba(255,255,255,0.14);
+      border-radius: 24px;
+      padding: 30px;
+      max-width: 440px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.35);
+    }
+
+    .overlay-card h1 { margin: 0 0 10px; font-size: 2rem; }
+    .overlay-card p { color: var(--muted); line-height: 1.6; }
+
+    .status {
+      color: var(--muted);
+      font-size: 0.95rem;
+      min-width: 220px;
+    }
+
+    .tag { color: var(--accent-2); font-weight: 700; }
+
+    @media (max-width: 700px) {
+      .hud { flex-direction: column; gap: 8px; align-items: flex-start; }
+      .battlefield { height: 420px; }
+      .controls { padding: 16px; }
+      .controls input { min-width: 100%; }
+      .word-box { font-size: 1rem; min-width: 150px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="game">
+    <div class="hud">
+      <div>Score: <strong id="score">0</strong></div>
+      <div>Health: <strong id="health">5</strong></div>
+      <div>Wave: <strong id="wave">1</strong></div>
+    </div>
+
+    <div class="battlefield" id="battlefield">
+      <div class="overlay" id="overlay">
+        <div class="overlay-card">
+          <h1>Zombie Typing Defense</h1>
+          <p>Type the displayed word before the zombies reach your base. Keep up the pace or the horde will break through.</p>
+          <button id="startBtn">Start Game</button>
+        </div>
+      </div>
+
+      <div class="message" id="message">Your hero is standing by. Get ready to type!</div>
+      <div class="word-box" id="wordBox">READY</div>
+      <div class="hero">YOU</div>
+      <div class="defense-line"></div>
+      <div class="ground"></div>
+    </div>
+
+    <div class="controls">
+      <input id="typingInput" autocomplete="off" spellcheck="false" placeholder="Type the word here" />
+      <div class="status" id="status">Press start and begin typing the target word.</div>
+      <div class="controls-group">
+        <button id="pauseBtn">Pause</button>
+        <button id="restartBtn">Restart</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const battlefield = document.getElementById('battlefield');
+    const overlay = document.getElementById('overlay');
+    const startBtn = document.getElementById('startBtn');
+    const restartBtn = document.getElementById('restartBtn');
+    const pauseBtn = document.getElementById('pauseBtn');
+    const typingInput = document.getElementById('typingInput');
+    const scoreEl = document.getElementById('score');
+    const healthEl = document.getElementById('health');
+    const waveEl = document.getElementById('wave');
+    const wordBox = document.getElementById('wordBox');
+    const messageEl = document.getElementById('message');
+    const statusEl = document.getElementById('status');
+
+    const wordPool = [
+      'shield', 'blast', 'flare', 'sprint', 'glow', 'focus', 'rocket', 'hammer', 'flare', 'light',
+      'nova', 'thunder', 'sword', 'storm', 'ember', 'crystal', 'pulse', 'quake', 'breeze', 'spark'
+    ];
+
+    let zombies = [];
+    let score = 0;
+    let health = 5;
+    let wave = 1;
+    let currentTarget = null;
+    let active = false;
+    let paused = false;
+    let lastTime = 0;
+    let spawnTimer = 0;
+    let spawnInterval = 2600;
+    let waveElapsed = 0;
+    const waveDuration = 120;
+
+    function randomWord() {
+      return wordPool[Math.floor(Math.random() * wordPool.length)];
+    }
+
+    function updateHud() {
+      scoreEl.textContent = score;
+      healthEl.textContent = health;
+      waveEl.textContent = wave;
+    }
+
+    function updateWordSpacing() {
+      const waveScale = Math.max(0.55, 1 - (wave - 1) * 0.15);
+      wordBox.style.padding = `${26 + 10 * waveScale}px ${36 + 18 * waveScale}px`;
+      wordBox.style.fontSize = `${1.1 + 0.35 * waveScale}rem`;
+      wordBox.style.minWidth = `${240 + 90 * waveScale}px`;
+      wordBox.style.marginTop = `${18 + 18 * waveScale}px`;
+    }
+
+    function updateStatus(text) {
+      statusEl.textContent = text;
+    }
+
+    function setTarget() {
+      if (!zombies.length) {
+        currentTarget = null;
+        wordBox.textContent = 'CLEAR';
+        messageEl.textContent = 'The lane is clear. Hold your ground!';
+        return;
+      }
+
+      const nearest = zombies.reduce((best, zombie) => zombie.x < best.x ? zombie : best, zombies[0]);
+      currentTarget = nearest;
+      wordBox.textContent = nearest.word.toUpperCase();
+      messageEl.textContent = 'Type the highlighted word to stop the closest zombie!';
+    }
+
+    function spawnZombie() {
+      const zombie = document.createElement('div');
+      zombie.className = 'zombie';
+      zombie.innerHTML = '<div class="zombie-body"></div><div class="zombie-label"></div>';
+      const label = zombie.querySelector('.zombie-label');
+      const word = randomWord();
+      label.textContent = word;
+
+      const startX = battlefield.clientWidth + 40;
+      const startY = 220 + Math.random() * 120;
+      zombie.style.left = `${startX}px`;
+      zombie.style.top = `${startY}px`;
+      battlefield.appendChild(zombie);
+
+      const levelFactor = 1 + wave * 0.04;
+      const speed = 18 + Math.random() * 4 + wave * 3 * levelFactor;
+      zombies.push({ element: zombie, x: startX, y: startY, word, speed });
+      setTarget();
+    }
+
+    function removeZombie(target) {
+      target.element.remove();
+      zombies = zombies.filter(z => z !== target);
+      setTarget();
+    }
+
+    function gameOver() {
+      active = false;
+      overlay.classList.remove('hidden');
+      overlay.querySelector('h1').textContent = 'Game Over';
+      overlay.querySelector('p').textContent = `You survived ${score} hits. Press restart to try again.`;
+      startBtn.textContent = 'Play Again';
+      typingInput.value = '';
+      updateStatus('The horde broke through.');
+    }
+
+    function loop(timestamp) {
+      if (!active || paused) return;
+
+      if (!lastTime) lastTime = timestamp;
+      const delta = (timestamp - lastTime) / 1000;
+      lastTime = timestamp;
+
+      spawnTimer += delta * 1000;
+      waveElapsed += delta;
+      updateHud();
+      updateWordSpacing();
+
+      if (spawnTimer > spawnInterval) {
+        spawnZombie();
+        spawnTimer = 0;
+      }
+
+      zombies.forEach((zombie, index) => {
+        zombie.x -= zombie.speed * delta;
+        zombie.element.style.left = `${zombie.x}px`;
+        if (zombie.x < 120) {
+          zombies.splice(index, 1);
+          zombie.element.remove();
+          health -= 1;
+          updateHud();
+          updateStatus('A zombie slipped past your defense!');
+          if (health <= 0) {
+            gameOver();
+            return;
+          }
+          setTarget();
+        }
+      });
+
+      if (waveElapsed >= waveDuration) {
+        wave += 1;
+        waveElapsed = 0;
+        spawnInterval = Math.max(1800, 2600 - wave * 40);
+        updateHud();
+        updateStatus(`Wave ${wave} begins!`);
+        messageEl.textContent = `Wave ${wave} is here. Stay calm and keep typing!`;
+      }
+
+      if (active) {
+        requestAnimationFrame(loop);
+      }
+    }
+
+    function startGame() {
+      score = 0;
+      health = 5;
+      wave = 1;
+      zombies = [];
+      currentTarget = null;
+      spawnTimer = 0;
+      spawnInterval = 2600;
+      lastTime = 0;
+      waveElapsed = 0;
+      paused = false;
+      pauseBtn.textContent = 'Pause';
+      overlay.classList.add('hidden');
+      battlefield.querySelectorAll('.zombie').forEach(el => el.remove());
+      updateHud();
+      updateWordSpacing();
+      typingInput.value = '';
+      updateStatus('Type the highlighted word to stop the nearest zombie.');
+      active = true;
+      messageEl.textContent = 'The horde is coming! Stay sharp.';
+      wordBox.textContent = 'READY';
+      requestAnimationFrame(loop);
+    }
+
+    function togglePause() {
+      if (!active) return;
+      paused = !paused;
+      pauseBtn.textContent = paused ? 'Resume' : 'Pause';
+      if (!paused) {
+        lastTime = 0;
+        requestAnimationFrame(loop);
+      }
+      updateStatus(paused ? 'Game paused. Press resume to continue.' : 'Game resumed. Keep typing!');
+    }
+
+    typingInput.addEventListener('input', () => {
+      if (!active || !currentTarget) return;
+      const typed = typingInput.value.trim().toLowerCase();
+      if (typed === currentTarget.word) {
+        score += 10;
+        updateHud();
+        updateStatus(`Boom! ${currentTarget.word} destroyed.`);
+        messageEl.textContent = 'Direct hit! The zombie was eliminated.';
+        removeZombie(currentTarget);
+        typingInput.value = '';
+      }
+    });
+
+    startBtn.addEventListener('click', startGame);
+    restartBtn.addEventListener('click', startGame);
+    pauseBtn.addEventListener('click', togglePause);
+    typingInput.addEventListener('keydown', (event) => {
+      if (event.key === 'Enter') {
+        event.preventDefault();
+      }
+    });
+
+    updateHud();
+  </script>
+</body>
+</html>
+ 
